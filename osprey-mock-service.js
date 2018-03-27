@@ -1,6 +1,7 @@
 var Negotiator = require('negotiator')
 var resources = require('osprey-resources')
 var osprey = require('osprey')
+var exampleProvider = null
 
 /**
  * Export the mock server.
@@ -9,6 +10,7 @@ module.exports = ospreyMockServer
 module.exports.createServer = createServer
 module.exports.createServerFromBaseUri = createServerFromBaseUri
 module.exports.loadFile = loadFile
+module.exports.setExampleProvider = setExampleProvider
 
 /**
  * Create an Osprey server instance.
@@ -103,17 +105,23 @@ function handler (method) {
 
     if (type) {
       res.setHeader('Content-Type', type)
-      var example = body.example
+      var example = null
 
-      // Parse body.examples.
-      if (Array.isArray(body.examples)) {
-        example = []
+      if (exampleProvider) {
+        example = exampleProvider(body, req)
+      } else {
+        example = body.example
 
-        body.examples.forEach(function (ex) {
-          var obj = {}
-          obj[ex.name] = ex.structuredValue
-          example.push(obj)
-        })
+        // Parse body.examples.
+        if (Array.isArray(body.examples)) {
+          example = []
+
+          body.examples.forEach(function (ex) {
+            var obj = {}
+            obj[ex.name] = ex.structuredValue
+            example.push(obj)
+          })
+        }
       }
 
       if (example) {
@@ -145,4 +153,13 @@ function setHeaders (res, headers) {
   Object.keys(headers).forEach(function (key) {
     res.setHeader(key, headers[key])
   })
+}
+
+/**
+ * Set a provider for custom examples
+ *
+ * @param {Function} provider
+ */
+function setExampleProvider(provider) {
+  exampleProvider = provider
 }
